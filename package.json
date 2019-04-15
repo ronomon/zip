@@ -1,0 +1,12 @@
+{
+  "name": "@ronomon/zip",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "index.js",
+  "files": [
+    "decode",
+    "index.js"
+  ],
+  "author": "Joran Dirk Greef"
+}

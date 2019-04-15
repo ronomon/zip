@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+var ZIP = require('.');
+
+var file = process.argv[2];
+if (file === undefined) return console.error('usage: ./decode <file>');
+
+try {
+  var headers = ZIP.decode(require('fs').readFileSync(file));
+  headers.forEach(
+    function(header) {
+      console.log(header);
+    }
+  );
+} catch (error) {
+  console.error(error.message || error);
+}
