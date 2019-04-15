@@ -723,25 +723,27 @@ ZIP.decodeString = function(name, buffer, offset, size, header) {
   }
   // Some systems such as macOS never bother to set bit 11 to indicate utf-8.
   // We therefore always attempt utf-8 and fallback to CP437 only on error.
-  try {
-    var textDecoder = new TextDecoder('utf-8', { fatal: true });
-    return textDecoder.decode(buffer.slice(offset, offset + size));
-  } catch (error) {
-    // If the string is supposed to be utf-8 then reject the string as invalid:
-    var utf8 = header && (header.generalPurposeBitFlag & (1 << 11));
-    if (utf8) throw new Error(name + ' contains invalid utf-8');
-  }
-  // CP437:
-  var string = '';
-  for (var index = offset, length = offset + size; index < length; index++) {
-    var code = buffer[index];
-    if (code < 128) {
-      string += String.fromCharCode(code);
-    } else {
-      string += self.decodeStringCP437[code - 128];
-    }
-  }
-  return string;
+  // TO DO: Switch to TextDecoder when we upgrade Node.
+  return buffer.toString('utf-8', offset, offset + size);
+  // try {
+  //   var textDecoder = new TextDecoder('utf-8', { fatal: true });
+  //   return textDecoder.decode(buffer.slice(offset, offset + size));
+  // } catch (error) {
+  //   // If the string is supposed to be utf-8 then reject the string as invalid:
+  //   var utf8 = header && (header.generalPurposeBitFlag & (1 << 11));
+  //   if (utf8) throw new Error(name + ' contains invalid utf-8');
+  // }
+  // // CP437:
+  // var string = '';
+  // for (var index = offset, length = offset + size; index < length; index++) {
+  //   var code = buffer[index];
+  //   if (code < 128) {
+  //     string += String.fromCharCode(code);
+  //   } else {
+  //     string += self.decodeStringCP437[code - 128];
+  //   }
+  // }
+  // return string;
 };
 
 ZIP.decodeStringCP437 = (
