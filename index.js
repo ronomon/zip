@@ -156,7 +156,7 @@ ZIP.assertExtraField = function(header) {
   var self = this;
   var buffer = header.extraField;
   var offset = 0;
-  while (offset + 4 < buffer.length) {
+  while (offset + 4 <= buffer.length) {
     var id = buffer.readUInt16LE(offset);
     var size = buffer.readUInt16LE(offset + 2);
     if (id === 0x7075) {
