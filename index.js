@@ -181,7 +181,13 @@ ZIP.assertExtraField = function(header) {
     offset += 4;
     offset += size;
   }
-  if (offset < buffer.length) throw new Error('extra field underflow');
+  if (offset < buffer.length) {
+    if (self.zeroed(buffer, offset, buffer.length - offset)) {
+      throw new Error('extra field underflow (zeroed)');
+    } else {
+      throw new Error('extra field underflow');
+    }
+  }
   if (offset > buffer.length) throw new Error('extra field overflow');
 };
 
@@ -208,7 +214,7 @@ ZIP.assertFileName = function(value) {
   ) {
     // File name contains a drive path, is an absolute or invalid relative path.
     throw new Error(
-      'malicious directory traversal (via file name): ' + JSON.stringify(value)
+      'directory traversal (via file name): ' + JSON.stringify(value)
     );
   }
   if (/\\/.test(value)) {
@@ -230,15 +236,22 @@ ZIP.assertFirstSignature = function(buffer, records) {
   var self = this;
   assert(Buffer.isBuffer(buffer));
   self.assertUInt32(records);
-  assert(buffer.length >= 4);
+  assert(buffer.length >= 8);
   // We expect a Local File Header or End Of Central Directory Record signature:
   var signature = records > 0 ? 0x04034b50 : 0x06054b50;
-  if (buffer.readUInt32LE(0) === signature) return;
+  var a = buffer.readUInt32LE(0);
+  if (a === signature) return 0;
+  // A spanned/split archive may be preceded by a special spanning signature:
+  // See APPNOTE 8.5.3 and 8.5.4.
+  var b = buffer.readUInt32LE(4);
+  if (b === signature && (a === 0x08074b50 || a === 0x30304b50)) return 4;
   var shift = self.findShift(buffer, signature);
   if (shift === -1) throw new Error('zip file has prepended data');
   assert(shift !== 0);
-  var unit = shift === 1 ? 'byte' : 'bytes';
-  throw new Error('zip file has prepended data: ' + shift + ' ' + unit);
+  var zeroed = self.zeroed(buffer, 0, shift) ? ' (zeroed)' : '';
+  throw new Error(
+    'zip file has prepended data' + zeroed + ': ' + self.bytes(shift)
+  );
 };
 
 ZIP.assertGeneralPurposeBitFlag = function(flag) {
@@ -299,7 +312,7 @@ ZIP.assertSymlink = function(path, value) {
   if (/^[a-zA-Z]:|^\//.test(value) || value.split('/').indexOf('..') !== -1) {
     // Symlink contains a drive path, is an absolute or invalid relative path.
     throw new Error(
-      'malicious directory traversal (via symlink): ' +
+      'directory traversal (via symlink): ' +
       JSON.stringify(path) + ' > ' + JSON.stringify(value)
     );
   }
@@ -336,6 +349,12 @@ ZIP.assertUInt32 = function(integer) {
   assert(integer >= 0 && integer <= Math.pow(2, 32) - 1);
 };
 
+ZIP.bytes = function(integer) {
+  var self = this;
+  self.assertUInt32(integer);
+  return integer + (integer === 1 ? ' byte' : ' bytes');
+};
+
 ZIP.decode = function(buffer) {
   var self = this;
   // SPEC: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
@@ -358,21 +377,43 @@ ZIP.decode = function(buffer) {
   if (buffer.length > Math.pow(2, 32) - 1) {
     throw new Error('unsupported: zip file exceeds 4 GB limit (ZIP64)');
   }
+  var signature = buffer.toString('hex', 0, 6);
+  if (signature.indexOf('526172211a07') === 0) {
+    throw new Error('not a zip file (malicious rar)');
+  }
+  if (signature.indexOf('78617221') === 0) {
+    throw new Error('not a zip file (malicious xar)');
+  }
+  if (signature.indexOf('7573746172') === 0) {
+    throw new Error('not a zip file (malicious tar)');
+  }
   var eocdrOffset = self.findEndOfCentralDirectoryRecord(buffer);
   if (eocdrOffset === -1) throw new Error('no end of central directory record');
   var eocdr = self.decodeHeaderEndOfCentralDirectoryRecord(buffer, eocdrOffset);
   self.assertUInt32(eocdr.length);
   if (eocdrOffset + eocdr.length !== buffer.length) {
-    throw new Error('zip file has appended data');
+    var eocdrAppended = buffer.length - eocdr.length - eocdrOffset;
+    assert(eocdrAppended > 0);
+    var eocdrZeroed = self.zeroed(
+      buffer,
+      eocdrOffset + eocdr.length,
+      eocdrAppended
+    );
+    throw new Error(
+      'zip file has appended data' + (eocdrZeroed ? ' (zeroed)' : '') + ': ' +
+      self.bytes(eocdrAppended)
+    );
   }
   self.assertUInt32(eocdr.centralDirectoryRecords);
   self.assertUInt32(eocdr.centralDirectoryOffset);
   self.assertUInt32(eocdr.centralDirectorySize);
+  var sumCompressedSizes = 0;
+  var sumUncompressedSizes = 0;
   var headers = [];
-  var localOffset = 0;
-  var centralOffset = eocdr.centralDirectoryOffset;
   var records = eocdr.centralDirectoryRecords;
-  self.assertFirstSignature(buffer, records);
+  var centralOffset = eocdr.centralDirectoryOffset;
+  var localOffset = self.assertFirstSignature(buffer, records);
+  assert(localOffset === 0 || localOffset === 4);
   while (records--) {
     var header = self.decodeHeaderCentralDirectoryFile(buffer, centralOffset);
     var local = self.decodeHeaderLocalFile(buffer, header.relativeOffset);
@@ -393,6 +434,8 @@ ZIP.decode = function(buffer) {
     }
     headers.push(header);
     centralOffset += header.length;
+    sumCompressedSizes += header.compressedSize;
+    sumUncompressedSizes += header.uncompressedSize;
   }
   if (eocdr.centralDirectoryOffset < localOffset) {
     throw new Error(
@@ -408,7 +451,13 @@ ZIP.decode = function(buffer) {
   self.assertUInt32(eocdr.centralDirectoryOffset);
   self.assertUInt32(eocdr.centralDirectorySize);
   var expect = eocdr.centralDirectoryOffset + eocdr.centralDirectorySize;
-  if (centralOffset < expect) throw new Error('central directory underflow');
+  if (centralOffset < expect) {
+    if (self.zeroed(buffer, centralOffset, expect - centralOffset)) {
+      throw new Error('central directory underflow (zeroed)');
+    } else {
+      throw new Error('central directory underflow');
+    }
+  }
   if (centralOffset > expect) throw new Error('central directory overflow');
   assert(centralOffset <= eocdrOffset);
   if (buffer.readUInt32LE(centralOffset) === 0x06064b50) {
@@ -421,6 +470,13 @@ ZIP.decode = function(buffer) {
     );
   }
   assert(centralOffset + eocdr.length === buffer.length);
+  self.assertUInt32(sumCompressedSizes);
+  self.assertUInt32(sumUncompressedSizes);
+  var ratio = Math.round(
+    sumUncompressedSizes / Math.max(1, sumCompressedSizes)
+  );
+  self.assertUInt32(ratio);
+  if (ratio > 100) throw new Error('zip bomb (ratio=' + ratio + ')');
   return headers;
 };
 
@@ -809,6 +865,8 @@ ZIP.inflate = function(header, buffer, end) {
     assert(copied === target.length);
     end(undefined, target);
   } else if (header.compressionMethod === 8) {
+    // TO DO: inflateRaw() must limit maximum uncompressed size to avoid a DoS.
+    // https://github.com/nodejs/node/issues/27253
     Node.zlib.inflateRaw(
       buffer.slice(offset, offset + header.compressedSize),
       function(error, target) {
@@ -851,6 +909,17 @@ ZIP.verify = function(header, data) {
   assert(Buffer.isBuffer(data));
   assert(data.length === header.uncompressedSize);
   return CRC32(data) === header.crc32;
+};
+
+ZIP.zeroed = function(buffer, offset, size) {
+  var self = this;
+  assert(Buffer.isBuffer(buffer));
+  self.assertUInt32(offset);
+  self.assertUInt32(size);
+  var length = offset + size;
+  assert(length <= buffer.length);
+  while (offset < length) if (buffer[offset++] !== 0) return false;
+  return true;
 };
 
 module.exports = ZIP;

@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
+var Node = {
+  fs: require('fs'),
+  process: process
+};
+
 var ZIP = require('.');
 
-var file = process.argv[2];
+var file = Node.process.argv[2];
 if (file === undefined) return console.error('usage: ./decode <file>');
 
 try {
-  var headers = ZIP.decode(require('fs').readFileSync(file));
+  var buffer = Node.fs.readFileSync(file);
+  var headers = ZIP.decode(buffer);
   headers.forEach(
     function(header) {
       console.log(header);
