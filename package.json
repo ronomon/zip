@@ -5,8 +5,9 @@
   "private": true,
   "main": "index.js",
   "files": [
-    "decode",
-    "index.js"
+    "index.js",
+    "scripts/decode",
+    "scripts/decode-local-files"
   ],
   "author": "Joran Dirk Greef"
 }
