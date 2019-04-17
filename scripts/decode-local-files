@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+var Node = {
+  fs: require('fs'),
+  process: process
+};
+
+var ZIP = require('.');
+
+var file = Node.process.argv[2];
+if (file === undefined) {
+  return console.error('usage: decode-local-files <file>');
+}
+
+try {
+  var buffer = Node.fs.readFileSync(file);
+  var offset = 0;
+  while (offset < buffer.length) {
+    if (buffer.readUInt32LE(offset) !== 0x04034b50) break;
+    var local = ZIP.decodeHeaderLocalFile(buffer, offset);
+    console.log(local);
+    offset += local.length;
+    offset += local.compressedSize;
+  }
+} catch (error) {
+  console.error(error.message || error);
+}
