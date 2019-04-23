@@ -839,7 +839,7 @@ ZIP.findShift = function(buffer, signature) {
   return -1;
 };
 
-ZIP.inflate = function(header, buffer, end) {
+ZIP.inflate = function(header, buffer) {
   var self = this;
   // Check that header is a central directory file and not a local file:
   self.assertUInt32(header.versionMade);
@@ -850,7 +850,6 @@ ZIP.inflate = function(header, buffer, end) {
     header.uncompressedSize
   );
   assert(Buffer.isBuffer(buffer));
-  assert(typeof end === 'function');
   var local = self.decodeHeaderLocalFile(buffer, header.relativeOffset);
   self.assertLocalFileMatchesCentralDirectoryFile(local, header);
   var offset = header.relativeOffset + local.length;
@@ -863,23 +862,20 @@ ZIP.inflate = function(header, buffer, end) {
     var copied = buffer.copy(target, 0, offset, offset + header.compressedSize);
     assert(copied === header.uncompressedSize);
     assert(copied === target.length);
-    end(undefined, target);
+    return target;
   } else if (header.compressionMethod === 8) {
     // TO DO: inflateRaw() must limit maximum uncompressed size to avoid a DoS.
     // https://github.com/nodejs/node/issues/27253
-    Node.zlib.inflateRaw(
-      buffer.slice(offset, offset + header.compressedSize),
-      function(error, target) {
-        if (error) return end(error);
-        if (target.length !== header.uncompressedSize) {
-          throw new Error(
-            'final inflated size diverges from header uncompressed size: ' +
-            target.length + ' vs ' + header.uncompressedSize
-          );
-        }
-        end(undefined, target);
-      }
+    var target = Node.zlib.inflateRawSync(
+      buffer.slice(offset, offset + header.compressedSize)
     );
+    if (target.length !== header.uncompressedSize) {
+      throw new Error(
+        'final inflated size diverges from header uncompressed size: ' +
+        target.length + ' vs ' + header.uncompressedSize
+      );
+    }
+    return target;
   } else {
     throw new Error(
       'unsupported: compression method=' + header.compressionMethod
