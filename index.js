@@ -919,3 +919,5 @@ ZIP.zeroed = function(buffer, offset, size) {
 };
 
 module.exports = ZIP;
+
+// S.D.G.
