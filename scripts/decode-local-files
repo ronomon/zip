@@ -5,7 +5,7 @@ var Node = {
   process: process
 };
 
-var ZIP = require('.');
+var ZIP = require('..');
 
 var file = Node.process.argv[2];
 if (file === undefined) {
