@@ -1,5 +1,7 @@
 INDEX:
 Detect Mac overflow for more than 64K files.
+Support ZIP64 files.
+Support decoding headers of encrypted archives (only throw for inflate).
 
 TEST:
 Generate ZIP headers dynamically to test that all exceptions are raised.
