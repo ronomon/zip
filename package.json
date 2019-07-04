@@ -1,13 +1,27 @@
 {
   "name": "@ronomon/zip",
-  "version": "1.3.4",
-  "description": "",
-  "private": true,
+  "version": "1.4.0",
+  "description": "Robust ZIP decoder.",
   "main": "index.js",
   "files": [
     "index.js",
+    "README.md",
     "scripts/decode",
     "scripts/decode-local-files"
   ],
-  "author": "Joran Dirk Greef"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronomon/zip.git"
+  },
+  "keywords": [
+    "archive",
+    "decode",
+    "zip"
+  ],
+  "author": "Joran Dirk Greef",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ronomon/zip/issues"
+  },
+  "homepage": "https://github.com/ronomon/zip#readme"
 }
