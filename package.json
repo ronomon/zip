@@ -1,6 +1,6 @@
 {
   "name": "@ronomon/zip",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Robust ZIP decoder.",
   "main": "index.js",
   "files": [
