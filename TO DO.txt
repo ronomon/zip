@@ -1,5 +1,5 @@
 INDEX:
-Detect Mac overflow for more than 64K files.
+Detect when macOS zip utility overflowed for more than 64K files.
 Support ZIP64 files.
 Support decoding headers of encrypted archives (only throw for inflate).
 
@@ -16,7 +16,7 @@ Explain why unicode path extra field must not diverge (ambiguous for scanners).
 Explain directory traversal via file and via symlink.
 Explain why prepended data is bad.
 Explain why appended data is bad (and difficult to parse, refer to yauzl issue).
-Explain that ZIP64 has issues with Mac.
-Explain Mac's overflow issues with zipping more than 64K files.
+Explain that macOS software has issues with ZIP64.
+Explain overflow issues with zipping more than 64K files on macOS.
 Explain how string decoding works.
 Explain null byte protection.
