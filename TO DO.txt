@@ -7,16 +7,7 @@ TEST:
 Generate ZIP headers dynamically to test that all exceptions are raised.
 
 README:
-List all anomalies which are detected and why.
-Explain how encrypted archives can have malware, also not supported by the ISO.
-Explain why we detect gaps and underflow (buffer bleed, exe stashing).
 Explain zip-bomb protection and what is still required by higher-level policy.
-Explain that patented features are not supported.
-Explain why unicode path extra field must not diverge (ambiguous for scanners).
-Explain directory traversal via file and via symlink.
-Explain why prepended data is bad.
-Explain why appended data is bad (and difficult to parse, refer to yauzl issue).
 Explain that macOS software has issues with ZIP64.
 Explain overflow issues with zipping more than 64K files on macOS.
-Explain how string decoding works.
 Explain null byte protection.
