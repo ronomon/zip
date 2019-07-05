@@ -62,7 +62,7 @@ These are unlikely to be benign.
 to evade content type detection or antivirus scanning. Some unzip utilities will
 unzip these files.
 
-* Rejects local file headers that overlap, which can exploited for zip bombs.
+* Rejects local file headers that overlap, which can be exploited for zip bombs.
 
 * Rejects local file headers that diverge from the central directory header,
 which can be exploited to create ambiguity in file metadata or content. For
@@ -100,9 +100,9 @@ scanning.
 common zip character encoding.
 
 * Rejects unequal compressed and uncompressed sizes when a file is stored
-uncompressed, which can exploited to create ambiguity and chameleon files.
+uncompressed, which can exploited to create ambiguity, i.e. in file content.
 
-* Rejects MS-DOS date years after 2099 that are not correctly handled by other
+* Rejects MS-DOS date years after 2099 that are not correctly handled by some
 zip implementations.
 
 * Rejects MS-DOS date months that are out of range, i.e. 0 or more than 12,
@@ -144,14 +144,15 @@ uncompressed sizes not equal to 0.
 * Rejects file names containing backslashes. All slashes must be forward slashes
 according to the spec.
 
-* Rejects file names exceeding 255 bytes, which exceeds most file system limits.
+* Rejects file names exceeding 255 bytes, which is close to most file system
+limits.
 
 * Rejects directory traversal via file name, which can be exploited to overwrite
 system files.
 
 * Rejects directory traversal via symlink, which can be exploited to overwrite
-system files. Many zip decoders, including antivirus scanners and popular email
-servers, do not detect directory traversals via symlink.
+system files. Some zip decoders, including antivirus scanners and popular email
+services, do not detect directory traversal via symlink.
 
 * Rejects compressed symlinks for simplicity, since these are highly unlikely.
 
@@ -162,6 +163,6 @@ runaway string decoding.
 
 `@ronomon/zip` has been tested on several large and diverse data
 sets, including David Fifield's
-[better zip bomb](https://www.bamsoftware.com/hacks/zipbomb/).
+["A better zip bomb"](https://www.bamsoftware.com/hacks/zipbomb/).
 
 Automated fuzz tests are yet to be included.
