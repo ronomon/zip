@@ -1,8 +1,10 @@
 # zip
 
-Robust ZIP decoder. Be
-[~liberal~](https://en.wikipedia.org/wiki/Robustness_principle#Criticism)
-conservative in what you accept.
+Robust ZIP decoder with defenses against dangerous compression ratios, spec
+deviations, malicious archive signatures, mismatching local and central
+directory headers, ambiguous UTF-8 filenames, directory and symlink traversals,
+invalid MS-DOS dates, overlapping headers, overflow, underflow, sparseness,
+accidental buffer bleeds etc.
 
 ## Installation
 
@@ -22,7 +24,7 @@ Parse the local file headers of an archive:
 
 ```javascript
 var ZIP = require('@ronomon/zip');
-var buffer = fs.readFileSync(file);
+var buffer = fs.readFileSync(archive);
 try {
   var headers = ZIP.decode(buffer);
 } catch (error) {
@@ -45,79 +47,94 @@ var file = ZIP.inflate(header, buffer);
 * Rejects zip files that are truncated, i.e. with no end of central directory
 record.
 
-* Rejects zip files with prepended data, whether zeroed or buffer bleed.
+* Rejects zip files with prepended data, which can be exploited to distribute
+[malicious JAR files appended to MSI files signed by third parties](https://blog.virustotal.com/2019/01/distribution-of-malicious-jar-appended.html)
+and other chameleon files. A chameleon file is an ambiguous file that looks
+different depending on the parser implementation used to open the file.
 
-* Rejects zip files with appended data, whether zeroed or buffer bleed.
+* Rejects zip files with appended data, which can be exploited for malware
+stuffing or which might represent buffer bleeds.
 
 * Rejects zip files with dangerous compression ratios, i.e. more than 100 to 1.
+These are unlikely to be benign.
 
-* Rejects malicious rar, tar and xar files that pretend to be zip files.
+* Rejects malicious rar, tar and xar files that pretend to be zip files in order
+to evade content type detection or antivirus scanning. Some unzip utilities will
+unzip these files.
 
-* Rejects local file headers that overlap.
+* Rejects local file headers that overlap, which can exploited for zip bombs.
 
-* Rejects local file headers that diverge from the central directory.
+* Rejects local file headers that diverge from the central directory header,
+which can be exploited to create ambiguity in file metadata or content. For
+example, some decoders might interpret the local file header as a malicious EXE
+file, while most decoders might interpret the central directory header as a
+harmless TXT file.
 
-* Rejects local file headers that overflow each other or the central directory.
+* Rejects local file headers that overflow each other or the central directory,
+which can be exploited for remote code execution.
 
 * Rejects local file headers that underflow each other or the central directory,
 i.e. gaps between local files or between the last local file and the central
-directory.
+directory, which might be exploited for malware stuffing or which might
+represent buffer bleeds.
 
 * Rejects local file headers with invalid combinations of bit 3, crc32 and
-compressed or uncompressed sizes.
+compressed or uncompressed sizes. Malware hygiene is poor when it comes to the
+spec.
 
 * Rejects data descriptors that overflow.
 
 * Rejects central directory headers that overflow.
 
-* Rejects central directory headers that underflow, whether zeroed or buffer
-bleed.
+* Rejects central directory headers that underflow.
 
-* Rejects archives spanning multiple disks.
+* Rejects archives spanning multiple disks, encryption mechanisms and archive
+headers, compression methods other than 0 (uncompressed) or 8 (deflate), ZIP64
+version 2 (and ZIP64 version 1), unused and reserved flags, since all of these
+are rejected by [ISO/IEC 21320-1:2015](https://www.iso.org/standard/60101.html).
+Encrypted archives are often used to distribute malware and evade antivirus
+scanning.
 
-* Rejects encryption and archive headers.
+* Accepts UTF-8 as well as the CP437 character encoding contrary to
+[ISO/IEC 21320-1:2015](https://www.iso.org/standard/60101.html) since CP437 is a
+common zip character encoding.
 
-* Rejects encryption mechanisms.
-
-* Rejects compression methods other than 0 (uncompressed) or 8 (deflate).
-
-* Rejects ZIP64 version 2 (and ZIP64 version 1).
-
-* Rejects unused and reserved flags.
-
-* Accepts UTF-8 and CP437 character encodings.
-
-* Rejects unequal compressed and uncompressed sizes when a file is store
-uncompressed.
+* Rejects unequal compressed and uncompressed sizes when a file is stored
+uncompressed, which can exploited to create ambiguity and chameleon files.
 
 * Rejects MS-DOS date years after 2099 that are not correctly handled by other
 zip implementations.
 
-* Rejects MS-DOS date months that are out of range, i.e. 0 or more than 12.
+* Rejects MS-DOS date months that are out of range, i.e. 0 or more than 12,
+characteristic of malware archives.
 
-* Rejects MS-DOS date days that are out of range, i.e. 0 or more than 31.
+* Rejects MS-DOS date days that are out of range, i.e. 0 or more than 31,
+characteristic of malware archives.
 
-* Rejects MS-DOS date hours that are out of range, i.e. more than 23.
+* Rejects MS-DOS date hours that are out of range, i.e. more than 23,
+characteristic of malware archives.
 
-* Rejects MS-DOS date minutes that are out of range, i.e. more than 59.
+* Rejects MS-DOS date minutes that are out of range, i.e. more than 59,
+characteristic of malware archives.
 
-* Rejects MS-DOS date seconds that are out of range, i.e. more than 59.
+* Rejects MS-DOS date seconds that are out of range, i.e. more than 59,
+characteristic of malware archives.
 
 * Rejects unicode path extra fields that overflow.
 
-* Rejects unicode path extra fields that underflow, whether zeroed or buffer
-bleed.
+* Rejects unicode path extra fields that underflow.
 
 * Rejects unicode path extra fields that have an invalid version.
 
-* Rejects unicode path extra fields that diverge from the central directory to
-prevent ambiguity, i.e. in file extension.
+* Rejects unicode path extra fields that diverge from the central directory,
+which can be exploited to create ambiguity, i.e. in file extension.
 
-* Rejects extra fields that exceed 4096 bytes.
+* Rejects extra fields that exceed 4096 bytes as an arbitrary upper bound.
 
 * Rejects extra fields with an invalid length, i.e. only 1, 2 or 3 bytes.
 
-* Rejects invalid UTF-8 strings.
+* Rejects invalid UTF-8 strings, which can be used to exploit vulnerable UTF-8
+decoders.
 
 * Rejects directories that pretend to be files, i.e. with compressed or
 uncompressed sizes not equal to 0.
@@ -127,19 +144,24 @@ uncompressed sizes not equal to 0.
 * Rejects file names containing backslashes. All slashes must be forward slashes
 according to the spec.
 
-* Rejects file names exceeding 256 bytes.
+* Rejects file names exceeding 255 bytes, which exceeds most file system limits.
 
-* Rejects directory traversal via file name.
+* Rejects directory traversal via file name, which can be exploited to overwrite
+system files.
 
-* Rejects directory traversal via symlink.
+* Rejects directory traversal via symlink, which can be exploited to overwrite
+system files. Many zip decoders, including antivirus scanners and popular email
+servers, do not detect directory traversals via symlink.
 
-* Rejects compressed symlinks.
+* Rejects compressed symlinks for simplicity, since these are highly unlikely.
 
-* Rejects symlinks that exceed 1024 bytes.
+* Rejects symlinks that exceed 1024 bytes as an arbitrary upper bound to prevent
+runaway string decoding.
 
 ## Tests
 
 `@ronomon/zip` has been tested on several large and diverse data
 sets, including David Fifield's
-[better zip bomb](https://www.bamsoftware.com/hacks/zipbomb/), but automated
-fuzz tests are yet to be included.
+[better zip bomb](https://www.bamsoftware.com/hacks/zipbomb/).
+
+Automated fuzz tests are yet to be included.
