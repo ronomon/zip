@@ -227,8 +227,8 @@ ZIP.assertFileNameLength = function(length) {
   var self = this;
   self.assertUInt32(length);
   // File name length may be 0 if input came from stdin.
-  if (length > 256) {
-    throw new Error('file name length exceeds 256 bytes: ' + length);
+  if (length > 255) {
+    throw new Error('file name length exceeds 255 bytes: ' + length);
   }
 };
 
