@@ -102,6 +102,12 @@ ZIP.assertCompressionMethodSizes = function(method, compressed, uncompressed) {
       ' and uncompressed size=' + uncompressed
     );
   }
+  if (compressed - uncompressed > 1048576) {
+    // CVE-2018-18384
+    // Defend vulnerable implementations against buffer overflow.
+    // https://bugzilla.suse.com/show_bug.cgi?id=1110194
+    throw new Error('dangerous negative compression ratio');
+  }
 };
 
 ZIP.assertDataDescriptorMatchesCentralDirectoryFile = function(a, b) {
