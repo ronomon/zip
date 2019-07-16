@@ -3,6 +3,7 @@
 var assert = require('assert');
 
 var Node = {
+  fs: require('fs'),
   zlib: require('zlib')
 };
 
@@ -322,6 +323,40 @@ ZIP.assertLocalFileMatchesCentralDirectoryFile = function(a, b) {
   }
 };
 
+ZIP.assertMode = function(mode) {
+  var self = this;
+  assert(Number.isSafeInteger(mode));
+  assert(mode >= 0);
+  // Detect dangerous types:
+  if ((mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFBLK) {
+    throw new Error('dangerous unix mode type (block device): ' + mode);
+  }
+  if ((mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFCHR) {
+    throw new Error('dangerous unix mode type (character device): ' + mode);
+  }
+  if ((mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFIFO) {
+    throw new Error('dangerous unix mode type (fifo): ' + mode);
+  }
+  if ((mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFSOCK) {
+    throw new Error('dangerous unix mode type (socket): ' + mode);
+  }
+  // Detect dangerous permissions:
+  // CVE-2005-0602
+  // https://marc.info/?l=bugtraq&m=110960796331943&w=2
+  // 01000:
+  if (mode & 512) {
+    throw new Error('dangerous unix mode permissions (sticky): ' + mode);
+  }
+  // 02000:
+  if (mode & 1024) {
+    throw new Error('dangerous unix mode permissions (setgid): ' + mode);
+  }
+  // 04000:
+  if (mode & 2048) {
+    throw new Error('dangerous unix mode permissions (setuid): ' + mode);
+  }
+};
+
 ZIP.assertSymlink = function(path, value) {
   var self = this;
   assert(typeof path === 'string');
@@ -627,6 +662,15 @@ ZIP.decodeHeaderCentralDirectoryFile = function(buffer, offset) {
   self.assertDisk(header.disk);
   self.assertFileName(header.fileName);
   self.assertExtraField(header);
+  if (header.relativeOffset + 30 + header.compressedSize > offset) {
+    throw new Error('local file header and data overlaps central directory');
+  }
+  if ((header.versionMade >>> 8) === 3) {
+    header.mode = (header.externalFileAttributes >>> 16) & 0xFFFF;
+  } else {
+    header.mode = 0;
+  }
+  self.assertMode(header.mode);
   if (
     (header.externalFileAttributes & 0x0010) ||
     (header.fileName[header.fileName.length - 1] === '/')
@@ -645,16 +689,8 @@ ZIP.decodeHeaderCentralDirectoryFile = function(buffer, offset) {
   } else {
     header.directory = 0;
   }
-  if ((header.versionMade >>> 8) === 3) {
-    header.mode = (header.externalFileAttributes >>> 16) & 0xFFFF;
-  } else {
-    header.mode = 0;
-  }
-  if (header.relativeOffset + 30 + header.compressedSize > offset) {
-    throw new Error('local file header and data overlaps central directory');
-  }
   // Detect malicious symlinks:
-  if ((header.mode & 61440) === 40960) {
+  if ((header.mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFLNK) {
     if (header.compressionMethod !== 0) {
       throw new Error('unsupported: compressed symlink');
     }
