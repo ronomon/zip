@@ -673,7 +673,8 @@ ZIP.decodeHeaderCentralDirectoryFile = function(buffer, offset) {
   self.assertMode(header.mode);
   if (
     (header.externalFileAttributes & 0x0010) ||
-    (header.fileName[header.fileName.length - 1] === '/')
+    (header.fileName[header.fileName.length - 1] === '/') ||
+    (header.mode & Node.fs.constants.S_IFMT) === Node.fs.constants.S_IFDIR
   ) {
     header.directory = 1;
     if (header.compressedSize !== 0) {
