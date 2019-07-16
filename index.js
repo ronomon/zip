@@ -185,7 +185,7 @@ ZIP.assertExtraField = function(header) {
     if (self.zeroed(buffer, offset, buffer.length - offset)) {
       throw new Error('extra field underflow (zeroed)');
     } else {
-      throw new Error('extra field underflow');
+      throw new Error('extra field underflow (buffer bleed)');
     }
   }
   if (offset > buffer.length) throw new Error('extra field overflow');
@@ -248,9 +248,9 @@ ZIP.assertFirstSignature = function(buffer, records) {
   var shift = self.findShift(buffer, signature);
   if (shift === -1) throw new Error('zip file has prepended data');
   assert(shift !== 0);
-  var zeroed = self.zeroed(buffer, 0, shift) ? ' (zeroed)' : '';
+  var zeroed = self.zeroed(buffer, 0, shift) ? 'zeroed' : 'buffer bleed';
   throw new Error(
-    'zip file has prepended data' + zeroed + ': ' + self.bytes(shift)
+    'zip file has prepended data (' + zeroed + '): ' + self.bytes(shift)
   );
 };
 
@@ -398,9 +398,10 @@ ZIP.decode = function(buffer) {
       buffer,
       eocdrOffset + eocdr.length,
       eocdrAppended
-    );
+    ) ? 'zeroed' : 'buffer bleed';
+    assert(typeof eocdrZeroed === 'string');
     throw new Error(
-      'zip file has appended data' + (eocdrZeroed ? ' (zeroed)' : '') + ': ' +
+      'zip file has appended data (' + eocdrZeroed + '): ' +
       self.bytes(eocdrAppended)
     );
   }
@@ -455,7 +456,7 @@ ZIP.decode = function(buffer) {
     if (self.zeroed(buffer, centralOffset, expect - centralOffset)) {
       throw new Error('central directory underflow (zeroed)');
     } else {
-      throw new Error('central directory underflow');
+      throw new Error('central directory underflow (buffer bleed)');
     }
   }
   if (centralOffset > expect) throw new Error('central directory overflow');
