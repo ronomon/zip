@@ -259,6 +259,13 @@ ZIP.assertFileNameLength = function(length) {
   // A "file name" in this context is a path name with multiple components.
   // File name length may be 0 if input came from stdin.
   if (length > 4096) {
+    // Defend vulnerable implementations against PATH_MAX allocation bugs, e.g.
+    // malloc(N*PATH_MAX) with the assumption user data cannot exceed PATH_MAX.
+
+    // CVE-2018-1000035
+    // Heap-based buffer overflow in password protected ZIP archives.
+    // https://sec-consult.com/en/blog/advisories/
+    //   multiple-vulnerabilities-in-infozip-unzip/index.html
     throw new Error('file name exceeds 4096 bytes: ' + length);
   }
 };
