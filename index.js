@@ -208,6 +208,16 @@ ZIP.assertExtraFieldLength = function(length) {
 ZIP.assertFileName = function(value) {
   var self = this;
   assert(typeof value === 'string');
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1F\x7F]/.test(value) && value !== 'Icon\r') {
+    // CVE-2003-0282 ("JELMER")
+    // Some zip implementations filter control characters at the least.
+    // This behavior can be exploited to mask ".." in a directory traversal.
+    // https://www.securityfocus.com/archive/1/321090
+    throw new Error(
+      'file name contains control characters: ' + JSON.stringify(value)
+    );
+  }
   if (
     /^[a-zA-Z]:|^\/|^\\/.test(value) ||
     value.split(/\/|\\/).indexOf('..') !== -1
