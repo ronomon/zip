@@ -218,14 +218,20 @@ ZIP.assertFileName = function(value) {
       'file name contains control characters: ' + JSON.stringify(value)
     );
   }
-  if (
-    /^[a-zA-Z]:|^\/|^\\/.test(value) ||
-    value.split(/\/|\\/).indexOf('..') !== -1
-  ) {
+  var parts = value.split(/\/|\\/);
+  if (parts.indexOf('..') !== -1 || /^[a-zA-Z]:|^\/|^\\/.test(value)) {
     // File name contains a drive path, is an absolute or invalid relative path.
     throw new Error(
       'directory traversal (via file name): ' + JSON.stringify(value)
     );
+  }
+  for (var index = 0; index < parts.length; index++) {
+    var part = parts[index];
+    if (part.length > 255 || Buffer.byteLength(part, 'utf-8') > 255) {
+      throw new Error(
+        'file name component exceeds 255 bytes: ' + JSON.stringify(value)
+      );
+    }
   }
   if (/\\/.test(value)) {
     // All slashes must be forward slashes according to APPNOTE.TXT.
@@ -236,9 +242,10 @@ ZIP.assertFileName = function(value) {
 ZIP.assertFileNameLength = function(length) {
   var self = this;
   self.assertUInt32(length);
+  // A "file name" in this context is a path name with multiple components.
   // File name length may be 0 if input came from stdin.
-  if (length > 255) {
-    throw new Error('file name length exceeds 255 bytes: ' + length);
+  if (length > 4096) {
+    throw new Error('file name exceeds 4096 bytes: ' + length);
   }
 };
 
