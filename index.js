@@ -76,6 +76,13 @@ var ZIP = {};
 ZIP.assertCompressionMethod = function(method) {
   var self = this;
   self.assertUInt32(method);
+  if (method > 999) {
+    // CVE-2016-9844
+    // Defend vulnerable implementations against overflow when the two-byte
+    // compression method in the central directory file header exceeds 999.
+    // https://bugs.launchpad.net/ubuntu/+source/unzip/+bug/1643750
+    throw new Error('malicious compression method (exceeds 999): ' + method);
+  }
   if (method === 99) {
     throw new Error('unsupported: encrypted compression method');
   }
