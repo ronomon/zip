@@ -4,7 +4,7 @@ Robust ZIP decoder with defenses against dangerous compression ratios, spec
 deviations, malicious archive signatures, mismatching local and central
 directory headers, ambiguous UTF-8 filenames, directory and symlink traversals,
 invalid MS-DOS dates, overlapping headers, overflow, underflow, sparseness,
-accidental buffer bleeds etc.
+buffer bleeds etc.
 
 ## Installation
 
@@ -58,6 +58,9 @@ stuffing or which might represent buffer bleeds.
 * Rejects zip files with dangerous compression ratios, i.e. more than 100 to 1.
 These are unlikely to be benign.
 
+* Rejects zip files with excessively negative compression ratios
+([2018-18384](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-18384)).
+
 * Rejects malicious rar, tar and xar files that pretend to be zip files in order
 to evade content type detection or antivirus scanning. Some unzip utilities will
 unzip these files.
@@ -94,6 +97,9 @@ version 2 (and ZIP64 version 1), unused and reserved flags, since all of these
 are rejected by [ISO/IEC 21320-1:2015](https://www.iso.org/standard/60101.html).
 Encrypted archives are often used to distribute malware and evade antivirus
 scanning.
+
+* Rejects compression methods greater than 999 to prevent buffer overflows
+([CVE-2016-984](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-984)).
 
 * Accepts UTF-8 as well as the CP437 character encoding contrary to
 [ISO/IEC 21320-1:2015](https://www.iso.org/standard/60101.html) since CP437 is a
@@ -139,13 +145,25 @@ decoders.
 * Rejects directories that pretend to be files, i.e. with compressed or
 uncompressed sizes not equal to 0.
 
+* Rejects dangerous unix mode permissions: setuid, setgid and sticky bits
+([CVE-2005-0602](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2005-0602)).
+
+* Rejects dangerous unix mode types: block devices, character devices, fifo
+special files and sockets.
+
 * Rejects file names containing null bytes.
+
+* Rejects file names containing control characters, which can be used to mask
+".." as part of a directory traversal
+([CVE-2003-0282](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-0282)).
 
 * Rejects file names containing backslashes. All slashes must be forward slashes
 according to the spec.
 
-* Rejects file names exceeding 255 bytes, which is close to most file system
-limits.
+* Rejects file names exceeding 4096 bytes to prevent buffer overflows
+([CVE-2018-1000035](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-1000035)).
+
+* Rejects file name components exceeding 255 bytes to prevent buffer overflows.
 
 * Rejects directory traversal via file name, which can be exploited to overwrite
 system files.
