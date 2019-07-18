@@ -42,7 +42,8 @@ var file = ZIP.inflate(header, buffer);
 
 * Rejects zip files that are too small, i.e. less than 22 bytes.
 
-* Rejects zip files that exceed the 4 GB limit.
+* Rejects zip files that exceed 2 GB to protect vulnerable downstream zip
+implementations from `int32_t` overflow.
 
 * Rejects zip files that are truncated, i.e. with no end of central directory
 record.

@@ -449,6 +449,9 @@ ZIP.decode = function(buffer) {
   if (buffer.length > Math.pow(2, 32) - 1) {
     throw new Error('unsupported: zip file exceeds 4 GB limit (ZIP64)');
   }
+  if (buffer.length > Math.pow(2, 31) - 1) {
+    throw new Error('unsupported: zip file exceeds 2 GB limit');
+  }
   var signature = buffer.toString('hex', 0, 6);
   if (signature.indexOf('526172211a07') === 0) {
     throw new Error('not a zip file (malicious rar)');
