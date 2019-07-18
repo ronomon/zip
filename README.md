@@ -59,7 +59,7 @@ stuffing or which might represent buffer bleeds.
 These are unlikely to be benign.
 
 * Rejects zip files with excessively negative compression ratios
-([2018-18384](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-18384)).
+([CVE-2018-18384](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-18384)).
 
 * Rejects malicious rar, tar and xar files that pretend to be zip files in order
 to evade content type detection or antivirus scanning. Some unzip utilities will
@@ -99,7 +99,7 @@ Encrypted archives are often used to distribute malware and evade antivirus
 scanning.
 
 * Rejects compression methods greater than 999 to prevent buffer overflows
-([CVE-2016-984](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-984)).
+([CVE-2016-9844](https://bugs.launchpad.net/ubuntu/+source/unzip/+bug/1643750)).
 
 * Accepts UTF-8 as well as the CP437 character encoding contrary to
 [ISO/IEC 21320-1:2015](https://www.iso.org/standard/60101.html) since CP437 is a
