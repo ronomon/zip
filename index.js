@@ -552,7 +552,9 @@ ZIP.decode = function(buffer) {
     sumUncompressedSizes / Math.max(1, sumCompressedSizes)
   );
   self.assertUInt32(ratio);
-  if (ratio > 100) throw new Error('zip bomb (ratio=' + ratio + ')');
+  if (ratio > 100 && sumUncompressedSizes > 1073741824) {
+    throw new Error('zip bomb (ratio=' + ratio + ')');
+  }
   return headers;
 };
 
