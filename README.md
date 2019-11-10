@@ -107,7 +107,7 @@ scanning.
 common zip character encoding.
 
 * Rejects unequal compressed and uncompressed sizes when a file is stored
-uncompressed, which can exploited to create ambiguity, i.e. in file content.
+uncompressed, which can be exploited to create ambiguity, i.e. in file content.
 
 * Rejects MS-DOS date years after 2099 that are not correctly handled by some
 zip implementations.
