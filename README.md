@@ -112,10 +112,10 @@ uncompressed, which can be exploited to create ambiguity, i.e. in file content.
 * Rejects MS-DOS date years after 2099 that are not correctly handled by some
 zip implementations.
 
-* Rejects MS-DOS date months that are out of range, i.e. 0 or more than 12,
+* Rejects MS-DOS date months that are out of range, i.e. more than 12,
 characteristic of malware archives.
 
-* Rejects MS-DOS date days that are out of range, i.e. 0 or more than 31,
+* Rejects MS-DOS date days that are out of range, i.e. more than 31,
 characteristic of malware archives.
 
 * Rejects MS-DOS date hours that are out of range, i.e. more than 23,
