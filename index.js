@@ -144,6 +144,8 @@ ZIP.assertDate = function(date) {
      Unit:  Day   Month  Year
     Range:  1-31  1-12   Relative to 1980
   */
+  // Some implementations do not set a date when creating the archive:
+  if (date === 0) return;
   var day = date & 31;
   if (day === 0 || day > 31) {
     throw new Error('ms-dos day out of range: ' + day + ' date=' + date);
