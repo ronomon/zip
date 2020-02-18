@@ -133,6 +133,31 @@ ZIP.assertDataDescriptorMatchesCentralDirectoryFile = function(a, b) {
   }
 };
 
+ZIP.assertDataDescriptorMatchesLocalFile = function(descriptor, local) {
+  var self = this;
+  if (local.crc32 !== 0 && local.crc32 !== descriptor.crc32) {
+    throw new Error(
+      'local file: bit 3, crc32 must be 0 or match data descriptor'
+    );
+  }
+  if (
+    local.compressedSize !== 0 &&
+    local.compressedSize !== descriptor.compressedSize
+  ) {
+    throw new Error(
+      'local file: bit 3, compressed size must be 0 or match data descriptor'
+    );
+  }
+  if (
+    local.uncompressedSize !== 0 &&
+    local.uncompressedSize !== descriptor.uncompressedSize
+  ) {
+    throw new Error(
+      'local file: bit 3, uncompressed size must be 0 or match data descriptor'
+    );
+  }
+};
+
 ZIP.assertDate = function(date) {
   var self = this;
   self.assertUInt32(date);
@@ -508,6 +533,7 @@ ZIP.decode = function(buffer) {
     if (local.generalPurposeBitFlag & (1 << 3)) {
       var descriptor = self.decodeHeaderDataDescriptor(buffer, localOffset);
       self.assertDataDescriptorMatchesCentralDirectoryFile(descriptor, header);
+      self.assertDataDescriptorMatchesLocalFile(descriptor, local);
       localOffset += descriptor.length;
     }
     headers.push(header);
@@ -823,18 +849,6 @@ ZIP.decodeHeaderLocalFile = function(buffer, offset) {
     header.compressedSize,
     header.uncompressedSize
   );
-  if (header.generalPurposeBitFlag & (1 << 3)) {
-    if (header.crc32 !== 0) {
-      throw new Error('local file: bit 3, crc32 must be 0');
-    }
-    // The un/compressed sizes may be non-zero when there is no compression:
-    if (header.compressedSize !== 0 && header.compressionMethod !== 0) {
-      throw new Error('local file: bit 3, compressed size must be 0');
-    }
-    if (header.uncompressedSize !== 0 && header.compressionMethod !== 0) {
-      throw new Error('local file: bit 3, uncompressed size must be 0');
-    }
-  }
   self.assertFileNameLength(header.fileNameLength);
   self.assertExtraFieldLength(header.extraFieldLength);
   self.assertFileName(header.fileName);
